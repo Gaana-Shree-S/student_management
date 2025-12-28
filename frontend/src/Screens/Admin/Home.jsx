@@ -13,6 +13,7 @@ import axiosWrapper from "../../utils/AxiosWrapper";
 import Profile from "./Profile";
 import Exam from "../Exam";
 import { useNavigate, useLocation } from "react-router-dom";
+import FloatingChatbot from "../../components/FloatingChatbot";
 
 const MENU_ITEMS = [
   { id: "home", label: "Home", component: Profile },
@@ -131,6 +132,8 @@ const Home = () => {
           {renderContent()}
         </div>
       </div>
+                <FloatingChatbot />
+      
       <Toaster position="bottom-center" />
     </>
   );
