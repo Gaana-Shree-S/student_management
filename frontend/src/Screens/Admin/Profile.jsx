@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import UpdatePasswordLoggedIn from "../../components/UpdatePasswordLoggedIn";
 import CustomButton from "../../components/CustomButton";
+import profileImg from "./images.jpeg";
 
 const Profile = ({ profileData }) => {
   const [showUpdatePasswordModal, setShowUpdatePasswordModal] = useState(false);
@@ -20,13 +21,13 @@ const Profile = ({ profileData }) => {
       <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           <img
-            src={`${process.env.REACT_APP_MEDIA_LINK}/${profileData.profile}`}
+            src={profileImg}
             alt="Profile"
             className="w-36 h-36 md:w-40 md:h-40 rounded-full object-cover ring-4 ring-blue-500 ring-offset-2 shadow-md"
           />
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1">
-              {`Samarat Rana`}
+              {` Samrat Rana`}
             </h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">
               Employee ID: <span className="font-semibold">{profileData.employeeId}</span>
