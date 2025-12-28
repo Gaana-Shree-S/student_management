@@ -26,7 +26,7 @@ const Profile = ({ profileData }) => {
           />
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-1">
-              {`${profileData.firstName} ${profileData.lastName}`}
+              {`Samarat Rana`}
             </h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">
               Employee ID: <span className="font-semibold">{profileData.employeeId}</span>
