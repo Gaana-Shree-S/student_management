@@ -5,6 +5,9 @@ const path = require("path");
 connectToMongo();
 const port = 4000 || process.env.PORT;
 var cors = require("cors");
+const adminSeedRoute = require("./routes/adminSeed");
+app.use("/api", adminSeedRoute);
+
 
 app.use(
   cors({
