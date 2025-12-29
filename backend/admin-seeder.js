@@ -7,7 +7,6 @@ const seedData = async () => {
     await connectToMongo();
 
     // Clear existing admin data
-    await adminDetails.deleteMany({});
 
     const password = "admin123";
     const employeeId = 123456;
