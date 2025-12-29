@@ -2,15 +2,27 @@ const express = require("express");
 const router = express.Router();
 const adminDetails = require("../models/details/admin-details.model");
 
-router.get("/seed-admin", async (req, res) => {
+/**
+ * DEV ONLY
+ * POST /api/seed-admin
+ */
+router.post("/seed-admin", async (req, res) => {
   try {
+    // 🔒 Block seeding in production
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({
+        message: "Seeding is disabled in production",
+      });
+    }
+
+    // 🔒 Prevent duplicate super admin
     const existingAdmin = await adminDetails.findOne({
-      email: "admin@gmail.com"
+      isSuperAdmin: true,
     });
 
     if (existingAdmin) {
       return res.status(200).json({
-        message: "Admin already exists"
+        message: "Admin already exists",
       });
     }
 
@@ -20,21 +32,27 @@ router.get("/seed-admin", async (req, res) => {
       lastName: "Admin",
       email: "admin@gmail.com",
       phone: "1234567890",
-      password: "admin123", // will hash if pre-save exists
+      password: "admin123", // pre-save hook will hash
       isSuperAdmin: true,
       status: "active",
       gender: "male",
-      country: "India"
+      country: "India",
     });
 
-    res.json({
-      message: "Admin created successfully",
-      admin: admin.email
+    res.status(201).json({
+      message: "✅ Admin created successfully",
+      admin: {
+        email: admin.email,
+        employeeId: admin.employeeId,
+      },
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Seeding failed" });
+    console.error("Seed admin error:", err);
+    res.status(500).json({
+      message: "❌ Seeding failed",
+      error: err.message,
+    });
   }
 });
 
