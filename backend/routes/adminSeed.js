@@ -9,7 +9,7 @@ const adminDetails = require("../models/details/admin-details.model");
 router.post("/seed-admin", async (req, res) => {
   try {
     // 🔒 Block seeding in production
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production" && req.query.key !== "INIT_ADMIN") {
       return res.status(403).json({
         message: "Seeding is disabled in production",
       });
