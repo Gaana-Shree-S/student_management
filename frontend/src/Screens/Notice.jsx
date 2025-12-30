@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { IoMdLink, IoMdAdd, IoMdClose } from "react-icons/io";
-import { HiOutlineCalendar } from "react-icons/hi";
+import { IoMdAdd, IoMdClose, IoMdMegaphone } from "react-icons/io";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MdDeleteOutline, MdEditNote } from "react-icons/md";
+import { FiExternalLink } from "react-icons/fi";
 import toast from "react-hot-toast";
 import Heading from "../components/Heading";
 import axiosWrapper from "../utils/AxiosWrapper";
-import CustomButton from "../components/CustomButton";
 import DeleteConfirm from "../components/DeleteConfirm";
 import Loading from "../components/Loading";
 
@@ -19,6 +18,7 @@ const Notice = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedNoticeId, setSelectedNoticeId] = useState(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [activeNotice, setActiveNotice] = useState(null);
   const token = localStorage.getItem("userToken");
 
   const [formData, setFormData] = useState({
@@ -39,21 +39,17 @@ const Notice = () => {
     try {
       setDataLoading(true);
       const response = await axiosWrapper.get("/notice", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (response.data.success) {
         setNotices(response.data.data);
+        if (response.data.data.length > 0) setActiveNotice(response.data.data[0]);
       } else {
         toast.error(response.data.message);
       }
     } catch (error) {
-      if (error.response?.status === 404) {
-        setNotices([]);
-      } else {
-        toast.error(error.response?.data?.message || "Failed to load notices");
-      }
+      if (error.response?.status === 404) setNotices([]);
+      else toast.error(error.response?.data?.message || "Failed to load notices");
     } finally {
       setDataLoading(false);
     }
@@ -65,12 +61,7 @@ const Notice = () => {
 
   const openAddModal = () => {
     setEditingNotice(null);
-    setFormData({
-      title: "",
-      description: "",
-      type: "student",
-      link: "",
-    });
+    setFormData({ title: "", description: "", type: "student", link: "" });
     setShowAddModal(true);
   };
 
@@ -87,264 +78,282 @@ const Notice = () => {
 
   const handleSubmitNotice = async (e) => {
     e.preventDefault();
-    const { title, description, type } = formData;
-
-    if (!title || !description || !type) {
-      toast.dismiss();
+    if (!formData.title || !formData.description || !formData.type) {
       toast.error("Please fill all the fields");
       return;
     }
-
     try {
-      toast.loading(editingNotice ? "Updating Notice" : "Adding Notice");
-
       const response = await axiosWrapper[editingNotice ? "put" : "post"](
         `/notice${editingNotice ? `/${editingNotice._id}` : ""}`,
         formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      toast.dismiss();
       if (response.data.success) {
         toast.success(response.data.message);
         getNotices();
         setShowAddModal(false);
         setEditingNotice(null);
-      } else {
-        toast.error(response.data.message);
       }
     } catch (error) {
-      toast.dismiss();
       toast.error(error.response?.data?.message || "Operation failed");
     }
   };
 
   const handleDelete = async () => {
     try {
-      toast.loading("Deleting Notice");
-      const response = await axiosWrapper.delete(
-        `/notice/${selectedNoticeId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      toast.dismiss();
+      const response = await axiosWrapper.delete(`/notice/${selectedNoticeId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.data.success) {
         toast.success("Notice deleted successfully");
         setIsDeleteConfirmOpen(false);
         getNotices();
-      } else {
-        toast.error(response.data.message);
       }
     } catch (error) {
-      toast.dismiss();
       toast.error(error.response?.data?.message || "Failed to delete notice");
     }
   };
 
   return (
-    <div className="w-full mx-auto flex justify-center items-start flex-col my-10">
-      <div className="relative flex justify-between items-center w-full">
-        <Heading title="Notices" />
-        {!dataLoading &&
-          (router.pathname === "/faculty" || router.pathname === "/admin") && (
-            <CustomButton onClick={openAddModal}>
-              <IoMdAdd className="text-2xl" />
-            </CustomButton>
-          )}
-      </div>
-
-      {dataLoading && <Loading />}
-
-      {!dataLoading && (
-        <div className="mt-8">
-          {notices.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No notices found
+    <div className="w-full min-h-screen bg-[#0a0f1c] py-10 px-4 md:px-8 text-slate-300">
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
+        
+        {/* HEADER ACTION BAR */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-[2px] w-8 bg-indigo-500 rounded-full"></div>
+              <span className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.4em]">Bulletin Board</span>
             </div>
-          ) : (
-            <div className="mt-8 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {notices?.map((notice) => (
-                <div
-                  key={notice._id}
-                  className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 w-[350px]"
-                >
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3
-                        className={`text-lg font-semibold line-clamp-2 group flex items-start ${
-                          notice.link
-                            ? "cursor-pointer hover:text-blue-600"
-                            : ""
-                        }`}
-                        onClick={() => notice.link && window.open(notice.link)}
-                      >
-                        {notice.title}
-                        {notice.link && (
-                          <IoMdLink className="ml-2 flex-shrink-0 text-xl opacity-70 group-hover:opacity-100 group-hover:text-blue-500" />
-                        )}
-                      </h3>
-                      {(router.pathname === "/faculty" ||
-                        router.pathname === "/admin") && (
-                        <div className="flex gap-2 ml-2 flex-shrink-0">
-                          <CustomButton
-                            onClick={() => {
-                              setSelectedNoticeId(notice._id);
-                              setIsDeleteConfirmOpen(true);
-                            }}
-                            variant="danger"
-                            className="!p-1.5 rounded-full"
-                            title="Delete Notice"
-                          >
-                            <MdDeleteOutline size={18} />
-                          </CustomButton>
-                          <CustomButton
-                            onClick={() => handleEdit(notice)}
-                            variant="secondary"
-                            className="!p-1.5 rounded-full"
-                            title="Edit Notice"
-                          >
-                            <MdEditNote size={18} />
-                          </CustomButton>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                      {notice.description}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center">
-                        <HiOutlineCalendar className="mr-1" />
-                        {new Date(notice.createdAt).toLocaleString("en-GB", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </div>
-                      {notice.type !== "both" && (
-                        <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
-                          {notice.type === "student" ? "Student" : "Faculty"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Modal UI */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg w-[500px] max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-semibold">
-                {editingNotice ? "Edit Notice" : "Add New Notice"}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingNotice(null);
-                }}
-                className="text-gray-500 hover:text-gray-700"
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Campus <span className="text-indigo-500">Intelligence.</span></h1>
+            <p className="text-slate-500 text-sm font-medium">Real-time announcements and administrative updates.</p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             {(router.pathname === "/faculty" || router.pathname === "/admin") && (
+              <button 
+                onClick={openAddModal}
+                className="group flex items-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-indigo-500 hover:text-white transition-all active:scale-95"
               >
-                <IoMdClose className="text-3xl" />
+                <IoMdAdd className="text-lg group-hover:rotate-90 transition-transform" /> Create Post
               </button>
-            </div>
-
-            <form onSubmit={handleSubmitNotice} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notice Title
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notice Description
-                </label>
-                <textarea
-                  rows="4"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notice Link (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.link}
-                  onChange={(e) =>
-                    setFormData({ ...formData, link: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type Of Notice
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Type</option>
-                  <option value="student">Student</option>
-                  <option value="faculty">Faculty</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-4 pt-4 border-t">
-                <CustomButton
-                  variant="secondary"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditingNotice(null);
-                  }}
-                >
-                  Cancel
-                </CustomButton>
-                <CustomButton type="submit" variant="primary">
-                  {editingNotice ? "Update" : "Add"}
-                </CustomButton>
-              </div>
-            </form>
+            )}
           </div>
         </div>
-      )}
 
-      <DeleteConfirm
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={handleDelete}
-        message="Are you sure you want to delete this notice?"
-      />
+        {dataLoading ? (
+          <div className="flex justify-center py-20"><Loading /></div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-10 min-h-[600px]">
+            
+            {/* LEFT: NOTICE FEED LIST */}
+            <div className="w-full lg:w-[380px] flex flex-col gap-4 max-h-[750px] overflow-y-auto pr-2 custom-scrollbar">
+              {notices.length === 0 ? (
+                <div className="bg-slate-900/40 rounded-[2.5rem] p-12 text-center border-2 border-dashed border-white/5">
+                  <IoMdMegaphone className="text-4xl text-slate-700 mx-auto mb-4" />
+                  <p className="text-slate-500 font-black text-[10px] uppercase tracking-widest">No signals found</p>
+                </div>
+              ) : (
+                notices.map((notice) => (
+                  <div
+                    key={notice._id}
+                    onClick={() => setActiveNotice(notice)}
+                    className={`group cursor-pointer p-6 rounded-[2rem] border transition-all duration-300 relative overflow-hidden ${
+                      activeNotice?._id === notice._id 
+                      ? "bg-indigo-600/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]" 
+                      : "bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-900/60"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${
+                        notice.type === 'student' 
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                        : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                      }`}>
+                        {notice.type}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold">
+                         {new Date(notice.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h4 className={`font-black text-sm mb-2 leading-snug tracking-tight ${activeNotice?._id === notice._id ? "text-white" : "text-slate-300 group-hover:text-white"}`}>
+                      {notice.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{notice.description}</p>
+                    
+                    {activeNotice?._id === notice._id && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* RIGHT: FEATURED CONTENT VIEW */}
+            <div className="flex-1 bg-slate-900/40 backdrop-blur-xl rounded-[3.5rem] border border-white/5 p-8 md:p-14 relative overflow-hidden">
+              {/* Subtle background glow */}
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+              {activeNotice ? (
+                <div className="animate-in slide-in-from-bottom-4 duration-700 relative z-10">
+                  <div className="flex justify-between items-start mb-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white text-slate-900 rounded-2xl flex items-center justify-center shadow-2xl">
+                        <IoMdMegaphone size={28} />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Official Transmission</span>
+                        <p className="text-xs text-slate-500 font-bold mt-0.5">Time: {new Date(activeNotice.createdAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    
+                    {(router.pathname === "/faculty" || router.pathname === "/admin") && (
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => handleEdit(activeNotice)}
+                          className="p-3.5 bg-white/5 text-slate-400 hover:text-indigo-400 hover:bg-white/10 rounded-2xl transition-all border border-white/5"
+                        >
+                          <MdEditNote size={24} />
+                        </button>
+                        <button 
+                           onClick={() => {
+                            setSelectedNoticeId(activeNotice._id);
+                            setIsDeleteConfirmOpen(true);
+                          }}
+                          className="p-3.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-white/10 rounded-2xl transition-all border border-white/5"
+                        >
+                          <MdDeleteOutline size={24} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <h2 className="text-4xl md:text-5xl font-black text-white leading-[1.1] mb-8 tracking-tighter">
+                    {activeNotice.title}
+                  </h2>
+
+                  <div className="max-w-none mb-12">
+                    <p className="text-slate-400 leading-relaxed text-lg whitespace-pre-line font-medium italic border-l-2 border-indigo-500/30 pl-6">
+                      {activeNotice.description}
+                    </p>
+                  </div>
+
+                  {activeNotice.link && (
+                    <a 
+                      href={activeNotice.link} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="group inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-indigo-950"
+                    >
+                      Access Attached Resource <FiExternalLink className="text-lg group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                  <div className="w-20 h-20 rounded-full border border-white/5 flex items-center justify-center mb-4">
+                    <IoMdMegaphone size={32} className="opacity-20" />
+                  </div>
+                  <p className="font-black uppercase tracking-[0.3em] text-[10px]">Select a frequency to monitor</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: DARK WORKSPACE */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex justify-center items-center z-[100] p-4">
+            <div className="bg-[#0d1425] border border-white/10 rounded-[3.5rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="p-10 md:p-14">
+                <div className="flex justify-between items-center mb-10">
+                  <div className="space-y-1">
+                    <h2 className="text-3xl font-black text-white tracking-tighter">
+                      {editingNotice ? "Edit Pulse" : "Broadcast Signal"}
+                    </h2>
+                    <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.4em]">Administrative Workspace</p>
+                  </div>
+                  <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-xl">
+                    <IoMdClose size={24} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmitNotice} className="space-y-8">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Headline</label>
+                    <input
+                      type="text"
+                      placeholder="Transmission Title..."
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full bg-white/5 border border-white/5 focus:border-indigo-500 rounded-2xl px-6 py-4 outline-none font-bold text-white transition-all placeholder:text-slate-700"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Context Body</label>
+                    <textarea
+                      rows="4"
+                      placeholder="Detailed intelligence report..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full bg-white/5 border border-white/5 focus:border-indigo-500 rounded-2xl px-6 py-4 outline-none font-bold text-white transition-all resize-none placeholder:text-slate-700"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Target</label>
+                      <select
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 focus:border-indigo-500 rounded-2xl px-6 py-4 outline-none font-bold text-white transition-all appearance-none"
+                      >
+                        <option value="student" className="bg-slate-900">Students</option>
+                        <option value="faculty" className="bg-slate-900">Faculty</option>
+                        <option value="both" className="bg-slate-900">Universal</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">External Link</label>
+                      <input
+                        type="text"
+                        placeholder="https://resource.cdn"
+                        value={formData.link}
+                        onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 focus:border-indigo-500 rounded-2xl px-6 py-4 outline-none font-bold text-white transition-all placeholder:text-slate-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-5 pt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="flex-1 py-5 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:text-white transition-all"
+                    >
+                      Abort
+                    </button>
+                    <button 
+                      type="submit"
+                      className="flex-[2] bg-white text-slate-900 rounded-[2rem] py-5 font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-indigo-500 hover:text-white transition-all"
+                    >
+                      {editingNotice ? "Sync Updates" : "Initialize Broadcast"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DeleteConfirm
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={handleDelete}
+          message="Permenantly delete this signal from the bulletin?"
+        />
+      </div>
     </div>
   );
 };

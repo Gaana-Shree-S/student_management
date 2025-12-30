@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { MdOutlineDelete, MdEdit } from "react-icons/md";
+import { MdOutlineDelete, MdEdit, MdOutlineLayers } from "react-icons/md";
 import { IoMdAdd } from "react-icons/io";
 import { AiOutlineClose } from "react-icons/ai";
+import { FiCalendar, FiUpload, FiDownloadCloud, FiClock } from "react-icons/fi";
+import { useSelector } from "react-redux";
 import axiosWrapper from "../utils/AxiosWrapper";
 import Heading from "../components/Heading";
 import DeleteConfirm from "../components/DeleteConfirm";
-import CustomButton from "../components/CustomButton";
-import { FiUpload } from "react-icons/fi";
-import { useSelector } from "react-redux";
 import Loading from "../components/Loading";
 
 const Exam = () => {
@@ -58,7 +57,6 @@ const Exam = () => {
         setExams([]);
         return;
       }
-      console.error(error);
       toast.error(error.response?.data?.message || "Error fetching exams");
     } finally {
       setDataLoading(false);
@@ -68,20 +66,12 @@ const Exam = () => {
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const addExamHandler = async () => {
-    if (
-      !data.name ||
-      !data.date ||
-      !data.semester ||
-      !data.examType ||
-      !data.totalMarks
-    ) {
-      toast.dismiss();
+    if (!data.name || !data.date || !data.semester || !data.examType || !data.totalMarks) {
       toast.error("Please fill all the fields");
       return;
     }
     try {
       setProcessLoading(true);
-      toast.loading(isEditing ? "Updating Exam" : "Adding Exam");
       const headers = {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${localStorage.getItem("userToken")}`,
@@ -95,15 +85,10 @@ const Exam = () => {
       formData.append("totalMarks", data.totalMarks);
       formData.append("file", file);
       if (isEditing) {
-        response = await axiosWrapper.patch(
-          `/exam/${selectedExamId}`,
-          formData,
-          { headers }
-        );
+        response = await axiosWrapper.patch(`/exam/${selectedExamId}`, formData, { headers });
       } else {
         response = await axiosWrapper.post(`/exam`, formData, { headers });
       }
-      toast.dismiss();
       if (response.data.success) {
         toast.success(response.data.message);
         resetForm();
@@ -112,7 +97,6 @@ const Exam = () => {
         toast.error(response.data.message);
       }
     } catch (error) {
-      toast.dismiss();
       toast.error(error.response?.data?.message);
     } finally {
       setProcessLoading(false);
@@ -128,6 +112,7 @@ const Exam = () => {
       timetableLink: "",
       totalMarks: "",
     });
+    setFile(null);
     setShowModal(false);
     setIsEditing(false);
     setSelectedExamId(null);
@@ -154,15 +139,9 @@ const Exam = () => {
 
   const confirmDelete = async () => {
     try {
-      toast.loading("Deleting Exam");
-      const headers = {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-      };
       const response = await axiosWrapper.delete(`/exam/${selectedExamId}`, {
-        headers,
+        headers: { Authorization: `Bearer ${localStorage.getItem("userToken")}` },
       });
-      toast.dismiss();
       if (response.data.success) {
         toast.success("Exam has been deleted successfully");
         setIsDeleteConfirmOpen(false);
@@ -171,252 +150,244 @@ const Exam = () => {
         toast.error(response.data.message);
       }
     } catch (error) {
-      toast.dismiss();
       toast.error(error.response?.data?.message);
     }
   };
 
   return (
-    <div className="w-full mx-auto mt-10 flex flex-col mb-16 px-4 md:px-10">
-      <div className="flex justify-between items-center w-full mb-6">
-        <Heading title="Exam Details" />
-        {!dataLoading && loginType !== "Student" && (
-          <CustomButton
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 flex items-center gap-2 font-semibold text-sm"
-          >
-            <IoMdAdd className="text-lg" />
-            Add Exam
-          </CustomButton>
-        )}
-      </div>
-
-      {!dataLoading ? (
-        <div className="w-full overflow-x-auto rounded-2xl shadow-lg bg-white/70 backdrop-blur-md border border-gray-200 dark:bg-gray-900/60 dark:border-gray-700">
-          <table className="min-w-full text-sm text-gray-800 dark:text-gray-100">
-            <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              <tr>
-                <th className="py-4 px-6 text-left font-semibold">Exam Name</th>
-                <th className="py-4 px-6 text-left font-semibold">Date</th>
-                <th className="py-4 px-6 text-left font-semibold">Semester</th>
-                <th className="py-4 px-6 text-left font-semibold">Exam Type</th>
-                <th className="py-4 px-6 text-left font-semibold">
-                  Total Marks
-                </th>
-                {loginType !== "Student" && (
-                  <th className="py-4 px-6 text-center font-semibold">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {exams && exams.length > 0 ? (
-                exams.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all"
-                  >
-                    <td className="py-4 px-6">{item.name}</td>
-                    <td className="py-4 px-6">
-                      {new Date(item.date).toLocaleDateString()}
-                    </td>
-                    <td className="py-4 px-6">{item.semester}</td>
-                    <td className="py-4 px-6 capitalize">
-                      {item.examType === "mid" ? "Mid Term" : "End Term"}
-                    </td>
-                    <td className="py-4 px-6">{item.totalMarks}</td>
-                    {loginType !== "Student" && (
-                      <td className="py-4 px-6 text-center flex justify-center gap-3">
-                        <CustomButton
-                          variant="secondary"
-                          className="!p-2 rounded-full"
-                          onClick={() => editExamHandler(item)}
-                        >
-                          <MdEdit className="text-lg" />
-                        </CustomButton>
-                        <CustomButton
-                          variant="danger"
-                          className="!p-2 rounded-full"
-                          onClick={() => deleteExamHandler(item._id)}
-                        >
-                          <MdOutlineDelete className="text-lg" />
-                        </CustomButton>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="text-center text-base py-10 text-gray-600 dark:text-gray-400"
-                  >
-                    No exams found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <Loading />
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-700 backdrop-blur-md transition-all">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-                {isEditing ? "Edit Exam" : "Add New Exam"}
-              </h2>
-              <CustomButton onClick={resetForm} variant="secondary" className="!p-2">
-                <AiOutlineClose size={20} />
-              </CustomButton>
+    <div className="w-full min-h-screen bg-[#0a0f1c] text-slate-300 py-10 px-4 md:px-8">
+      <div className="max-w-7xl mx-auto animate-in fade-in duration-700">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-[2px] w-8 bg-indigo-500 rounded-full"></div>
+              <span className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.4em]">Examination Portal</span>
             </div>
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Academic <span className="text-indigo-500">Timeline.</span></h1>
+            <p className="text-slate-500 font-medium">Coordinate and track upcoming assessments.</p>
+          </div>
+          
+          {!dataLoading && loginType !== "Student" && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="group relative flex items-center gap-2 bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-300 hover:bg-indigo-500 hover:text-white shadow-xl active:scale-95"
+            >
+              <IoMdAdd className="text-xl group-hover:rotate-90 transition-transform" />
+              Slot New Exam
+            </button>
+          )}
+        </div>
 
-            <div className="space-y-5">
-              {/* Exam Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Exam Name
-                </label>
-                <input
-                  type="text"
-                  value={data.name}
-                  onChange={(e) => setData({ ...data, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white/90 dark:bg-gray-800/80"
-                  required
-                />
+        {dataLoading ? (
+          <div className="flex flex-col items-center justify-center py-32">
+            <Loading />
+            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-8 animate-pulse">Syncing Encrypted Records...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {exams && exams.length > 0 ? (
+              exams.map((item, index) => {
+                const examDate = new Date(item.date);
+                const isMid = item.examType === "mid";
+
+                return (
+                  <div 
+                    key={index} 
+                    className="group relative bg-slate-900/40 backdrop-blur-md rounded-[3rem] border border-white/5 p-8 hover:border-indigo-500/30 transition-all duration-500 hover:bg-slate-900/60"
+                  >
+                    {/* Exam Category Chip */}
+                    <div className={`absolute top-8 right-8 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${isMid ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
+                      {isMid ? "Internal" : "External"}
+                    </div>
+
+                    {/* Date Badge */}
+                    <div className="flex items-center gap-5 mb-10">
+                      <div className="flex flex-col items-center justify-center w-16 h-16 bg-white text-slate-900 rounded-2xl shadow-xl group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-500">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">
+                          {examDate.toLocaleString('default', { month: 'short' })}
+                        </span>
+                        <span className="text-xl font-black leading-none">
+                          {examDate.getDate()}
+                        </span>
+                      </div>
+                      <div className="max-w-[150px]">
+                        <h3 className="text-xl font-black text-white leading-tight group-hover:text-indigo-400 transition-colors">
+                          {item.name}
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1 mt-1">
+                          <MdOutlineLayers className="text-sm text-indigo-500" /> Sem {item.semester}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Detail Grid */}
+                    <div className="grid grid-cols-2 gap-4 mb-10">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Weightage</p>
+                        <p className="text-sm font-black text-slate-200">{item.totalMarks} Marks</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Cycle</p>
+                        <p className="text-sm font-black text-slate-200">{examDate.getFullYear()}</p>
+                      </div>
+                    </div>
+
+                    {/* Action Footer */}
+                    <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                      {item.timetableLink ? (
+                         <a 
+                          href={`${process.env.REACT_APP_MEDIA_LINK}/${item.timetableLink}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-2 text-indigo-400 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+                         >
+                           <FiDownloadCloud className="text-lg" /> Get Schedule
+                         </a>
+                      ) : <span className="text-[9px] font-bold text-slate-600 uppercase italic">File Pending</span>}
+
+                      {loginType !== "Student" && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => editExamHandler(item)}
+                            className="p-3 rounded-xl bg-white/5 text-slate-400 hover:bg-indigo-500 hover:text-white transition-all"
+                          >
+                            <MdEdit />
+                          </button>
+                          <button 
+                            onClick={() => deleteExamHandler(item._id)}
+                            className="p-3 rounded-xl bg-white/5 text-slate-400 hover:bg-rose-500 hover:text-white transition-all"
+                          >
+                            <MdOutlineDelete />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full py-32 bg-slate-900/20 rounded-[4rem] border-2 border-dashed border-white/5 flex flex-col items-center justify-center">
+                <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center shadow-2xl mb-6 border border-white/5 text-slate-700">
+                  <FiCalendar className="text-4xl" />
+                </div>
+                <p className="text-slate-500 font-black text-xs uppercase tracking-[0.4em]">No Assessments Slotted</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL: Cyber Form */}
+        {showModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-300">
+            <div className="bg-[#0d1425] border border-white/10 rounded-[3rem] p-8 md:p-12 w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <button onClick={resetForm} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors">
+                <AiOutlineClose size={24} />
+              </button>
+
+              <div className="mb-12">
+                <span className="text-indigo-500 font-black text-[10px] uppercase tracking-[0.4em]">Master Schedule</span>
+                <h2 className="text-3xl font-black text-white tracking-tighter mt-2">
+                  {isEditing ? "Modify Record" : "New Assessment"}
+                </h2>
               </div>
 
-              {/* Date + Semester */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date
-                  </label>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Exam Label</label>
                   <input
-                    type="date"
-                    value={data.date}
-                    onChange={(e) =>
-                      setData({ ...data, date: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white/90 dark:bg-gray-800/80"
-                    required
+                    type="text"
+                    placeholder="e.g. Unit Test I"
+                    value={data.name}
+                    onChange={(e) => setData({ ...data, name: e.target.value })}
+                    className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:border-indigo-500 transition-all font-bold text-white outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Semester
-                  </label>
-                  <select
-                    name="semester"
-                    value={data.semester}
-                    onChange={(e) =>
-                      setData({ ...data, semester: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white/90 dark:bg-gray-800/80"
-                    required
-                  >
-                    <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              {/* Exam Type + Total Marks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Exam Type
-                  </label>
-                  <select
-                    value={data.examType}
-                    onChange={(e) =>
-                      setData({ ...data, examType: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white/90 dark:bg-gray-800/80"
-                    required
-                  >
-                    <option value="mid">Mid Term</option>
-                    <option value="end">End Term</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Total Marks
-                  </label>
-                  <input
-                    type="number"
-                    value={data.totalMarks}
-                    onChange={(e) =>
-                      setData({ ...data, totalMarks: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white/90 dark:bg-gray-800/80"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Timetable File
-                </label>
-                <div className="flex items-center gap-4">
-                  <label className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition">
-                    <span className="flex items-center justify-center gap-2">
-                      <FiUpload />
-                      {file ? file.name : "Choose File"}
-                    </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Calendar Date</label>
                     <input
-                      type="file"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      required={!isEditing}
+                      type="date"
+                      value={data.date}
+                      onChange={(e) => setData({ ...data, date: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:border-indigo-500 transition-all font-bold text-white outline-none [color-scheme:dark]"
                     />
-                  </label>
-                  {file && (
-                    <CustomButton
-                      onClick={() => setFile(null)}
-                      variant="danger"
-                      className="!p-2 rounded-full"
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Semester</label>
+                    <select
+                      value={data.semester}
+                      onChange={(e) => setData({ ...data, semester: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:border-indigo-500 transition-all font-bold text-white outline-none appearance-none"
                     >
-                      <AiOutlineClose size={18} />
-                    </CustomButton>
-                  )}
+                      <option value="" className="bg-slate-900">Select Term</option>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                        <option key={sem} value={sem} className="bg-slate-900">Semester 0{sem}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 mt-6">
-                <CustomButton onClick={resetForm} variant="secondary">
-                  Cancel
-                </CustomButton>
-                <CustomButton
-                  onClick={addExamHandler}
-                  disabled={processLoading}
-                >
-                  {isEditing ? "Update Exam" : "Add Exam"}
-                </CustomButton>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Type</label>
+                    <div className="flex p-1 bg-white/5 rounded-2xl border border-white/5">
+                      <button 
+                        onClick={() => setData({ ...data, examType: "mid" })}
+                        className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${data.examType === "mid" ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500'}`}
+                      >Internal</button>
+                      <button 
+                        onClick={() => setData({ ...data, examType: "end" })}
+                        className={`flex-1 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${data.examType === "end" ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500'}`}
+                      >External</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Max Weight</label>
+                    <input
+                      type="number"
+                      value={data.totalMarks}
+                      onChange={(e) => setData({ ...data, totalMarks: e.target.value })}
+                      className="w-full px-6 py-4 bg-white/5 border border-white/5 rounded-2xl focus:border-indigo-500 transition-all font-bold text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Attached Schedule</label>
+                  <label className="flex items-center justify-between w-full px-6 py-5 bg-indigo-500/5 border border-dashed border-indigo-500/30 rounded-2xl cursor-pointer hover:bg-indigo-500/10 transition-all group">
+                    <span className="text-xs font-bold text-indigo-400 truncate max-w-[80%]">
+                      {file ? file.name : "Upload Timetable (PDF/JPG)"}
+                    </span>
+                    <FiUpload className="text-indigo-500 group-hover:scale-125 transition-transform" />
+                    <input type="file" className="hidden" onChange={handleFileChange} />
+                  </label>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button onClick={resetForm} className="flex-1 py-5 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors">Discard</button>
+                  <button 
+                    onClick={addExamHandler} 
+                    disabled={processLoading}
+                    className="flex-[2] py-5 bg-white text-slate-900 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50 hover:bg-indigo-500 hover:text-white"
+                  >
+                    {isEditing ? "Apply Revisions" : "Initialize Exam"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <DeleteConfirm
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={confirmDelete}
-        message="Are you sure you want to delete this exam?"
-      />
+        <DeleteConfirm
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={confirmDelete}
+          message="Are you sure you want to delete this exam record?"
+        />
+      </div>
     </div>
   );
 };

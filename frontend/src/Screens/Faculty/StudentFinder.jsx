@@ -4,6 +4,7 @@ import Heading from "../../components/Heading";
 import axiosWrapper from "../../utils/AxiosWrapper";
 import CustomButton from "../../components/CustomButton";
 import NoData from "../../components/NoData";
+import { FiSearch, FiUser, FiBookOpen, FiMapPin, FiPhone, FiMail, FiX, FiFilter, FiActivity } from "react-icons/fi";
 
 const StudentFinder = () => {
   const [searchParams, setSearchParams] = useState({
@@ -23,27 +24,14 @@ const StudentFinder = () => {
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        toast.loading("Loading branches...");
         const response = await axiosWrapper.get("/branch", {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
+          headers: { Authorization: `Bearer ${userToken}` },
         });
         if (response.data.success) {
           setBranches(response.data.data);
-        } else {
-          toast.error(response.data.message);
         }
       } catch (error) {
-        if (error.response?.status === 404) {
-          setBranches([]);
-        } else {
-          toast.error(
-            error.response?.data?.message || "Failed to load branches"
-          );
-        }
-      } finally {
-        toast.dismiss();
+        console.error("Failed to load branches");
       }
     };
     fetchBranches();
@@ -51,365 +39,256 @@ const StudentFinder = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setSearchParams((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setSearchParams((prev) => ({ ...prev, [name]: value }));
   };
 
   const searchStudents = async (e) => {
     e.preventDefault();
     setDataLoading(true);
     setHasSearched(true);
-    toast.loading("Searching students...");
-    setStudents([]);
+    const searchToast = toast.loading("Scanning Database...");
     try {
-      const response = await axiosWrapper.post(
-        `/student/search`,
-        searchParams,
-        {
-          headers: { Authorization: `Bearer ${userToken}` },
-        }
-      );
-
-      toast.dismiss();
+      const response = await axiosWrapper.post(`/student/search`, searchParams, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      toast.dismiss(searchToast);
       if (response.data.success) {
-        if (response.data.data.length === 0) {
-          toast.error("No students found!");
-          setStudents([]);
-        } else {
-          toast.success("Students found!");
-          setStudents(response.data.data);
-        }
-      } else {
-        toast.error(response.data.message);
+        setStudents(response.data.data);
+        if (response.data.data.length > 0) toast.success(`${response.data.data.length} records found`);
       }
     } catch (error) {
-      toast.dismiss();
-      toast.error(error.response?.data?.message || "Error searching students");
-      console.error("Search error:", error);
+      toast.dismiss(searchToast);
+      toast.error("Database sync failed");
     } finally {
       setDataLoading(false);
     }
   };
 
-  const handleRowClick = (student) => {
-    setSelectedStudent(student);
-    setShowModal(true);
-  };
-
   return (
-    <div className="w-full mx-auto mt-10 flex justify-center items-start flex-col mb-10">
-      <div className="flex justify-between items-center w-full">
-        <Heading title="Student Finder" />
+    <div className="min-h-screen bg-slate-950 text-slate-200">
+      {/* Header Section */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-1 w-8 bg-indigo-500 rounded-full"></div>
+            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Intelligence Unit</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter">Student Directory</h1>
+          <p className="text-slate-500 font-bold text-sm mt-1">Unified search across academic infrastructure</p>
+        </div>
       </div>
 
-      <div className="my-6 mx-auto w-full">
-        <form onSubmit={searchStudents} className="flex items-center">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-[90%] mx-auto">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enrollment Number
-              </label>
-              <input
-                type="text"
-                name="enrollmentNo"
-                value={searchParams.enrollmentNo}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter enrollment number"
-              />
+      <div className="flex flex-col lg:flex-row gap-10">
+        {/* LEFT: Search Panel */}
+        <aside className="w-full lg:w-80 flex-shrink-0">
+          <form 
+            onSubmit={searchStudents} 
+            className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-800 sticky top-28 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-8 text-indigo-400 font-black text-xs uppercase tracking-widest">
+              <FiFilter /> <span>Search Matrix</span>
             </div>
+            
+            <div className="space-y-6">
+              <FilterField label="Enrollment ID" name="enrollmentNo" value={searchParams.enrollmentNo} onChange={handleInputChange} placeholder="Ex: EN2024..." />
+              <FilterField label="Full Name" name="name" value={searchParams.name} onChange={handleInputChange} placeholder="Type name..." />
+              
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Academic Term</label>
+                <select name="semester" value={searchParams.semester} onChange={handleInputChange} className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all appearance-none outline-none">
+                  <option value="">All Semesters</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => <option key={sem} value={sem}>Term {sem}</option>)}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={searchParams.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter student name"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Department</label>
+                <select name="branch" value={searchParams.branch} onChange={handleInputChange} className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all appearance-none outline-none">
+                  <option value="">All Branches</option>
+                  {branches?.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Semester
-              </label>
-              <select
-                name="semester"
-                value={searchParams.semester}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <button 
+                type="submit" 
+                disabled={dataLoading} 
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase text-[10px] tracking-[0.2em] py-5 rounded-2xl shadow-xl shadow-indigo-500/10 transition-all active:scale-95 disabled:opacity-50"
               >
-                <option value="">Select Semester</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                  <option key={sem} value={sem}>
-                    Semester {sem}
-                  </option>
-                ))}
-              </select>
+                {dataLoading ? "Processing..." : "Execute Search"}
+              </button>
             </div>
+          </form>
+        </aside>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Branch
-              </label>
-              <select
-                name="branch"
-                value={searchParams.branch}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Branch</option>
-                {branches?.map((branch) => (
-                  <option key={branch._id} value={branch._id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
+        {/* RIGHT: Results Area */}
+        <main className="flex-1">
+          {!hasSearched ? (
+            <div className="bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-800 p-24 flex flex-col items-center text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-indigo-500/5 blur-[120px] pointer-events-none"></div>
+              <div className="w-28 h-28 bg-indigo-500/10 rounded-full flex items-center justify-center mb-8 border border-indigo-500/20">
+                <FiSearch className="text-4xl text-indigo-400" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-400 tracking-tight">System Idle</h3>
+              <p className="text-slate-600 max-w-xs mt-3 font-bold text-sm">Waiting for search parameters to query the central student database.</p>
             </div>
-          </div>
-
-          <div className="mt-6 flex justify-center w-[10%] mx-auto">
-            <CustomButton
-              type="submit"
-              disabled={dataLoading}
-              variant="primary"
-            >
-              {dataLoading ? "Searching..." : "Search"}
-            </CustomButton>
-          </div>
-        </form>
-
-        {!hasSearched && (
-          <div className="text-center mt-8 text-gray-600 flex flex-col items-center justify-center my-10 bg-white p-10 rounded-lg mx-auto w-[40%]">
-            <img
-              src="/assets/filter.svg"
-              alt="Select filters"
-              className="w-64 h-64 mb-4"
-            />
-            Please select at least one filter to search students
-          </div>
-        )}
-
-        {hasSearched && students.length === 0 && (
-          <NoData title="No students found" />
-        )}
-
-        {students.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Search Results</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="px-6 py-3 border-b text-left">Profile</th>
-                    <th className="px-6 py-3 border-b text-left">Name</th>
-                    <th className="px-6 py-3 border-b text-left">
-                      Enrollment No
-                    </th>
-                    <th className="px-6 py-3 border-b text-left">Semester</th>
-                    <th className="px-6 py-3 border-b text-left">Branch</th>
-                    <th className="px-6 py-3 border-b text-left">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student) => (
-                    <tr
-                      key={student._id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleRowClick(student)}
-                    >
-                      <td className="px-6 py-4 border-b">
-                        <img
-                          src={`${process.env.REACT_APP_MEDIA_LINK}/${student.profile}`}
-                          alt={`${student.firstName}'s profile`}
-                          className="w-12 h-12 object-cover rounded-full"
-                          onError={(e) => {
-                            e.target.src =
-                              "https://images.unsplash.com/photo-1744315900478-fa44dc6a4e89?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-                          }}
-                        />
-                      </td>
-                      <td className="px-6 py-4 border-b">
-                        {student.firstName} {student.middleName}{" "}
-                        {student.lastName}
-                      </td>
-                      <td className="px-6 py-4 border-b">
-                        {student.enrollmentNo}
-                      </td>
-                      <td className="px-6 py-4 border-b">{student.semester}</td>
-                      <td className="px-6 py-4 border-b">
-                        {student.branchId?.name}
-                      </td>
-                      <td className="px-6 py-4 border-b">{student.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {showModal && selectedStudent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold">Student Details</h2>
-                <CustomButton
-                  onClick={() => setShowModal(false)}
-                  variant="secondary"
+          ) : students.length === 0 ? (
+            <div className="bg-slate-900/20 rounded-[3rem] p-24"><NoData /></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {students.map((student) => (
+                <div 
+                  key={student._id}
+                  onClick={() => { setSelectedStudent(student); setShowModal(true); }}
+                  className="group bg-slate-900/40 backdrop-blur-sm p-6 rounded-[2.5rem] border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/60 transition-all cursor-pointer relative overflow-hidden"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </CustomButton>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-8 mb-8">
-                <div className="w-full md:w-1/3">
-                  <img
-                    src={`${process.env.REACT_APP_MEDIA_LINK}/${selectedStudent.profile}`}
-                    alt={`${selectedStudent.firstName}'s profile`}
-                    className="w-full h-auto object-cover rounded-lg"
-                    onError={(e) => {
-                      e.target.src =
-                        "https://images.unsplash.com/photo-1744315900478-fa44dc6a4e89?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-                    }}
-                  />
-                </div>
-
-                <div className="w-full md:w-2/3">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <p>
-                      <span className="font-medium">Full Name:</span>{" "}
-                      {selectedStudent.firstName} {selectedStudent.middleName}{" "}
-                      {selectedStudent.lastName}
-                    </p>
-                    <p>
-                      <span className="font-medium">Gender:</span>{" "}
-                      {selectedStudent.gender}
-                    </p>
-                    <p>
-                      <span className="font-medium">Date of Birth:</span>{" "}
-                      {new Date(selectedStudent.dob).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Blood Group:</span>{" "}
-                      {selectedStudent.bloodGroup}
-                    </p>
+                  <div className="flex items-start gap-5">
+                    <div className="relative">
+                        <img 
+                          src={`${process.env.REACT_APP_MEDIA_LINK}/${student.profile}`} 
+                          alt="Avatar" 
+                          className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-700 group-hover:border-indigo-500 transition-colors"
+                          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200"; }}
+                        />
+                        <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
+                            <FiActivity className="text-indigo-500 text-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-slate-200 group-hover:text-white transition-colors leading-tight text-lg truncate">
+                        {student.firstName} {student.lastName}
+                      </h4>
+                      <p className="text-[10px] font-black text-indigo-500/80 mt-1 uppercase tracking-widest">
+                        {student.enrollmentNo}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                         <span className="px-3 py-1 bg-slate-800 text-slate-400 text-[9px] font-black rounded-lg uppercase tracking-wider">
+                           Sem {student.semester}
+                         </span>
+                         <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[9px] font-black rounded-lg uppercase tracking-wider">
+                           {student.branchId?.name?.split(' ')[0]}
+                         </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Academic Information
-                  </h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Enrollment No:</span>{" "}
-                      {selectedStudent.enrollmentNo}
-                    </p>
-                    <p>
-                      <span className="font-medium">Branch:</span>{" "}
-                      {selectedStudent.branchId?.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Semester:</span>{" "}
-                      {selectedStudent.semester}
-                    </p>
+      {/* Modal - Dark Industrial Variant */}
+      {showModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-6 z-[200] animate-in fade-in duration-300">
+          <div className="bg-slate-950 rounded-[3.5rem] w-full max-w-5xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-slate-800 flex flex-col md:flex-row max-h-[90vh]">
+            
+            {/* Modal Sidebar */}
+            <div className="w-full md:w-80 bg-slate-900/50 p-10 border-r border-slate-800/50 flex flex-col items-center">
+               <div className="relative group">
+                 <div className="absolute -inset-2 bg-indigo-500/20 rounded-[2.5rem] blur opacity-50"></div>
+                 <img 
+                   src={`${process.env.REACT_APP_MEDIA_LINK}/${selectedStudent.profile}`} 
+                   className="relative w-48 h-48 rounded-[2.5rem] object-cover shadow-2xl mb-8 border-4 border-slate-950"
+                   alt="Profile"
+                 />
+               </div>
+               <h2 className="text-2xl font-black text-white text-center leading-tight tracking-tighter">
+                 {selectedStudent.firstName} <br/> {selectedStudent.lastName}
+               </h2>
+               <p className="text-indigo-400 font-black text-xs uppercase tracking-[0.2em] mt-3">{selectedStudent.enrollmentNo}</p>
+               
+               <div className="mt-10 w-full space-y-4">
+                  <div className="bg-slate-950 p-4 rounded-2xl flex items-center gap-4 border border-slate-800">
+                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                        <FiBookOpen size={16}/>
+                     </div>
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedStudent.branchId?.name}</span>
                   </div>
-                </div>
+               </div>
 
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Contact Information
-                  </h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Email:</span>{" "}
-                      {selectedStudent.email}
-                    </p>
-                    <p>
-                      <span className="font-medium">Phone:</span>{" "}
-                      {selectedStudent.phone}
-                    </p>
-                    <p>
-                      <span className="font-medium">Address:</span>{" "}
-                      {selectedStudent.address}
-                    </p>
-                  </div>
-                </div>
+               <button 
+                onClick={() => setShowModal(false)}
+                className="mt-auto flex items-center gap-3 text-slate-500 hover:text-rose-500 font-black text-[10px] uppercase tracking-widest transition-all pt-10"
+               >
+                 <FiX size={18} /> Close System View
+               </button>
+            </div>
 
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Location Details
-                  </h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">City:</span>{" "}
-                      {selectedStudent.city}
-                    </p>
-                    <p>
-                      <span className="font-medium">State:</span>{" "}
-                      {selectedStudent.state}
-                    </p>
-                    <p>
-                      <span className="font-medium">Pincode:</span>{" "}
-                      {selectedStudent.pincode}
-                    </p>
-                    <p>
-                      <span className="font-medium">Country:</span>{" "}
-                      {selectedStudent.country}
-                    </p>
-                  </div>
-                </div>
+            {/* Modal Body */}
+            <div className="flex-1 p-10 md:p-14 overflow-y-auto">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <InfoSection title="Communications">
+                    <InfoItem icon={<FiMail/>} label="Official Email" value={selectedStudent.email} />
+                    <InfoItem icon={<FiPhone/>} label="Contact Number" value={selectedStudent.phone} />
+                    <InfoItem icon={<FiMapPin/>} label="Primary Residence" value={`${selectedStudent.address}, ${selectedStudent.city}`} />
+                  </InfoSection>
 
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Emergency Contact
-                  </h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Name:</span>{" "}
-                      {selectedStudent.emergencyContact?.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Relationship:</span>{" "}
-                      {selectedStudent.emergencyContact?.relationship}
-                    </p>
-                    <p>
-                      <span className="font-medium">Phone:</span>{" "}
-                      {selectedStudent.emergencyContact?.phone}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                  <InfoSection title="Identity & Academics">
+                    <InfoItem icon={<FiUser/>} label="Biological Gender" value={selectedStudent.gender} />
+                    <InfoItem icon={<FiBookOpen/>} label="Current Status" value={`Semester ${selectedStudent.semester} Active`} />
+                  </InfoSection>
+
+                  <InfoSection title="Emergency Protocol" className="md:col-span-2 bg-rose-950/20 border border-rose-900/20 p-8 rounded-[2rem]">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-[10px] font-black text-rose-500/60 uppercase mb-2 tracking-widest">Guardian Signature</p>
+                          <p className="text-2xl font-black text-rose-100 tracking-tighter">{selectedStudent.emergencyContact?.name}</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div>
+                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Relation</p>
+                                <p className="text-xs font-bold text-rose-400">{selectedStudent.emergencyContact?.relationship}</p>
+                            </div>
+                            <div className="h-8 w-[1px] bg-rose-900/50"></div>
+                            <div>
+                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Direct Line</p>
+                                <p className="text-xs font-bold text-rose-400">{selectedStudent.emergencyContact?.phone || "N/A"}</p>
+                            </div>
+                        </div>
+                      </div>
+                      <div className="bg-rose-600 shadow-xl shadow-rose-900/20 text-white p-5 rounded-3xl">
+                        <FiPhone size={24} />
+                      </div>
+                    </div>
+                  </InfoSection>
+               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const FilterField = ({ label, ...props }) => (
+  <div className="space-y-2">
+    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{label}</label>
+    <input 
+      {...props} 
+      className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-700 text-white outline-none"
+    />
+  </div>
+);
+
+const InfoSection = ({ title, children, className }) => (
+  <div className={className}>
+    <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+        {title}
+    </h3>
+    <div className="space-y-8">{children}</div>
+  </div>
+);
+
+const InfoItem = ({ icon, label, value }) => (
+  <div className="flex gap-5 group">
+    <div className="mt-1 text-slate-600 group-hover:text-indigo-400 transition-colors">{icon}</div>
+    <div className="space-y-1">
+      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">{label}</p>
+      <p className="text-base font-bold text-slate-200 tracking-tight">{value || "---"}</p>
+    </div>
+  </div>
+);
 
 export default StudentFinder;

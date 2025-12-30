@@ -1,14 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
-import { FiUpload, FiEdit2, FiTrash2 } from "react-icons/fi";
-import Heading from "../../components/Heading";
-import { AiOutlineClose } from "react-icons/ai";
+import { FiUpload, FiEdit2, FiTrash2, FiSearch, FiBook, FiFolder, FiCpu, FiLayers } from "react-icons/fi";
+import { AiOutlineClose, AiOutlineFileText } from "react-icons/ai";
+import { MdLink, MdOutlineFilterList } from "react-icons/md";
+import { IoMdAdd } from "react-icons/io";
 import toast from "react-hot-toast";
 import axiosWrapper from "../../utils/AxiosWrapper";
 import DeleteConfirm from "../../components/DeleteConfirm";
-import CustomButton from "../../components/CustomButton";
-import { MdLink } from "react-icons/md";
-import { IoMdAdd } from "react-icons/io";
+
 const Material = () => {
   const [materials, setMaterials] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -32,7 +31,6 @@ const Material = () => {
     branch: "",
     type: "",
   });
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchSubjects();
@@ -46,112 +44,50 @@ const Material = () => {
 
   const fetchSubjects = async () => {
     try {
-      toast.loading("Loading subjects...");
       const response = await axiosWrapper.get("/subject", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("userToken")}` },
       });
-      if (response.data.success) {
-        setSubjects(response.data.data);
-      }
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setSubjects([]);
-      } else {
-        toast.error(
-          error?.response?.data?.message || "Failed to load subjects"
-        );
-      }
-    } finally {
-      toast.dismiss();
-    }
+      if (response.data.success) setSubjects(response.data.data);
+    } catch (error) { setSubjects([]); }
   };
 
   const fetchBranches = async () => {
     try {
-      toast.loading("Loading branches...");
       const response = await axiosWrapper.get("/branch", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("userToken")}` },
       });
-      if (response.data.success) {
-        setBranches(response.data.data);
-      }
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setBranches([]);
-      } else {
-        toast.error(
-          error?.response?.data?.message || "Failed to load branches"
-        );
-      }
-    } finally {
-      toast.dismiss();
-    }
+      if (response.data.success) setBranches(response.data.data);
+    } catch (error) { setBranches([]); }
   };
 
   const fetchMaterials = async () => {
     try {
-      toast.loading("Loading materials...");
       const queryParams = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) queryParams.append(key, value);
       });
 
       const response = await axiosWrapper.get(`/material?${queryParams}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("userToken")}` },
       });
-      if (response.data.success) {
-        setMaterials(response.data.data);
-      }
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setMaterials([]);
-      } else {
-        toast.error(
-          error?.response?.data?.message || "Failed to load materials"
-        );
-      }
-    } finally {
-      toast.dismiss();
-    }
+      if (response.data.success) setMaterials(response.data.data);
+    } catch (error) { setMaterials([]); }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const resetForm = () => {
-    setFormData({
-      title: "",
-      subject: "",
-      semester: "",
-      branch: "",
-      type: "notes",
-    });
+    setFormData({ title: "", subject: "", semester: "", branch: "", type: "notes" });
     setFile(null);
     setEditingMaterial(null);
   };
@@ -159,43 +95,30 @@ const Material = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setDataLoading(true);
-    toast.loading(
-      editingMaterial ? "Updating material..." : "Adding material..."
-    );
+    const loadingToast = toast.loading(editingMaterial ? "Updating Registry..." : "Uploading Asset...");
 
     try {
       const formDataToSend = new FormData();
-      Object.keys(formData).forEach((key) => {
-        formDataToSend.append(key, formData[key]);
-      });
-      if (file) {
-        formDataToSend.append("file", file);
-      }
+      Object.keys(formData).forEach((key) => formDataToSend.append(key, formData[key]));
+      if (file) formDataToSend.append("file", file);
 
       if (editingMaterial) {
-        await axiosWrapper.put(
-          `/material/${editingMaterial._id}`,
-          formDataToSend
-        );
-        toast.success("Material updated successfully");
+        await axiosWrapper.put(`/material/${editingMaterial._id}`, formDataToSend);
+        toast.success("Registry Updated", { id: loadingToast });
       } else {
         await axiosWrapper.post("/material", formDataToSend, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-          },
+          headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${localStorage.getItem("userToken")}` },
         });
-        toast.success("Material added successfully");
+        toast.success("Asset Published", { id: loadingToast });
       }
 
       setShowModal(false);
       resetForm();
       fetchMaterials();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Operation failed");
+      toast.error("Deployment failed", { id: loadingToast });
     } finally {
       setDataLoading(false);
-      toast.dismiss();
     }
   };
 
@@ -214,348 +137,237 @@ const Material = () => {
   const handleDelete = async () => {
     try {
       await axiosWrapper.delete(`/material/${selectedMaterialId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("userToken")}` },
       });
-      toast.success("Material deleted successfully");
+      toast.success("Asset Revoked");
       setIsDeleteConfirmOpen(false);
       fetchMaterials();
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Failed to delete material"
-      );
+      toast.error("Failed to revoke");
     }
   };
 
   return (
-    <div className="w-full mx-auto mt-10 flex justify-center items-start flex-col mb-10">
-      <div className="flex justify-between items-center w-full">
-        <Heading title="Material Management" />
-        <CustomButton onClick={() => setShowModal(true)}>
-          <IoMdAdd className="text-2xl" />
-        </CustomButton>
+    <div className="min-h-screen bg-slate-950 text-slate-200">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="h-1 w-6 bg-indigo-500 rounded-full"></div>
+            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Knowledge Base</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+             Digital Library
+          </h1>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="group flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all active:scale-95 font-black uppercase text-xs tracking-widest"
+        >
+          <IoMdAdd className="text-xl group-hover:rotate-90 transition-transform" /> Upload Resource
+        </button>
       </div>
 
-      {/* Filters */}
-      <div className="w-full mt-4">
-        <div className="grid grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Subject
-            </label>
-            <select
-              name="subject"
-              value={filters.subject}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Subjects</option>
-              {subjects.map((subject) => (
-                <option key={subject._id} value={subject._id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Modern Filter Bar */}
+      <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800 rounded-[2.5rem] p-8 mb-12 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6 text-indigo-400 font-black text-[10px] uppercase tracking-[0.2em]">
+          <MdOutlineFilterList size={18} /> Optimization Filters
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: "Branch", name: "branch", options: branches },
+            { label: "Subject", name: "subject", options: subjects },
+          ].map((filter) => (
+            <div key={filter.name}>
+              <select
+                name={filter.name}
+                value={filters[filter.name]}
+                onChange={handleFilterChange}
+                className="w-full bg-slate-950/50 border border-slate-800 text-slate-300 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold text-sm appearance-none cursor-pointer"
+              >
+                <option value="">All {filter.label}es</option>
+                {filter.options.map((opt) => (
+                  <option key={opt._id} value={opt._id}>{opt.name}</option>
+                ))}
+              </select>
+            </div>
+          ))}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Branch
-            </label>
-            <select
-              name="branch"
-              value={filters.branch}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Branches</option>
-              {branches.map((branch) => (
-                <option key={branch._id} value={branch._id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            name="semester"
+            value={filters.semester}
+            onChange={handleFilterChange}
+            className="w-full bg-slate-950/50 border border-slate-800 text-slate-300 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold text-sm appearance-none cursor-pointer"
+          >
+            <option value="">All Semesters</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+              <option key={sem} value={sem}>Term {sem}</option>
+            ))}
+          </select>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Semester
-            </label>
-            <select
-              name="semester"
-              value={filters.semester}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Semesters</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                <option key={sem} value={sem}>
-                  Semester {sem}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Type
-            </label>
-            <select
-              name="type"
-              value={filters.type}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              <option value="notes">Notes</option>
-              <option value="assignment">Assignment</option>
-              <option value="syllabus">Syllabus</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+          <select
+            name="type"
+            value={filters.type}
+            onChange={handleFilterChange}
+            className="w-full bg-slate-950/50 border border-slate-800 text-slate-300 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold text-sm appearance-none cursor-pointer"
+          >
+            <option value="">All Categories</option>
+            {["notes", "assignment", "syllabus", "other"].map(t => (
+              <option key={t} value={t} className="capitalize">{t}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Materials Table */}
-      <div className="w-full mt-8 overflow-x-auto">
-        {materials.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No materials found
+      {/* Material Grid */}
+      {materials.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-800">
+          <div className="relative">
+             <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-10 animate-pulse"></div>
+             <FiFolder size={80} className="relative text-slate-700 mb-6" />
           </div>
-        ) : (
-          <table className="text-sm min-w-full bg-white">
-            <thead>
-              <tr className="bg-blue-500 text-white">
-                <th className="py-4 px-6 text-left font-semibold">File</th>
-                <th className="py-4 px-6 text-left font-semibold">Title</th>
-                <th className="py-4 px-6 text-left font-semibold">Subject</th>
-                <th className="py-4 px-6 text-left font-semibold">Semester</th>
-                <th className="py-4 px-6 text-left font-semibold">Branch</th>
-                <th className="py-4 px-6 text-left font-semibold">Type</th>
-                <th className="py-4 px-6 text-left font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {materials.map((material) => (
-                <tr key={material._id} className="border-b hover:bg-blue-50">
-                  <td className="py-4 px-6">
-                    <CustomButton
-                      variant="primary"
-                      onClick={() => {
-                        window.open(
-                          `${process.env.REACT_APP_MEDIA_LINK}/${material.file}`
-                        );
-                      }}
-                    >
-                      <MdLink className="text-xl" />
-                    </CustomButton>
-                  </td>
-                  <td className="py-4 px-6">{material.title}</td>
-                  <td className="py-4 px-6">{material.subject.name}</td>
-                  <td className="py-4 px-6">{material.semester}</td>
-                  <td className="py-4 px-6">{material.branch.name}</td>
-                  <td className="py-4 px-6 capitalize">{material.type}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex gap-4">
-                      <CustomButton
-                        variant="secondary"
-                        onClick={() => handleEdit(material)}
-                      >
-                        <FiEdit2 />
-                      </CustomButton>
-                      <CustomButton
-                        variant="danger"
-                        onClick={() => {
-                          setSelectedMaterialId(material._id);
-                          setIsDeleteConfirmOpen(true);
-                        }}
-                      >
-                        <FiTrash2 />
-                      </CustomButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+          <p className="text-slate-400 font-black text-xl tracking-tight">Archives Empty</p>
+          <p className="text-slate-600 text-sm mt-2">No matching documentation found in the cloud.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+          {materials.map((material) => (
+            <div key={material._id} className="group bg-slate-900/40 backdrop-blur-sm rounded-[2.5rem] border border-slate-800 p-8 shadow-xl hover:border-indigo-500/50 hover:bg-slate-900/60 transition-all duration-500 relative overflow-hidden">
+              {/* Subtle background glow */}
+              <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors"></div>
 
-      {/* Add/Edit Material Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                {editingMaterial ? "Edit Material" : "Add New Material"}
-              </h2>
-              <CustomButton
-                onClick={() => {
-                  setShowModal(false);
-                  resetForm();
-                }}
-                variant="secondary"
+              <div className="flex justify-between items-start mb-8">
+                <div className="p-5 bg-indigo-500/10 text-indigo-400 rounded-2xl group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
+                  <AiOutlineFileText size={36} />
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(material)} className="p-3 text-slate-500 hover:text-indigo-400 hover:bg-slate-800 rounded-xl transition-all">
+                    <FiEdit2 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => { setSelectedMaterialId(material._id); setIsDeleteConfirmOpen(true); }}
+                    className="p-3 text-slate-500 hover:text-rose-500 hover:bg-slate-800 rounded-xl transition-all"
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-black text-white mb-3 truncate tracking-tight">{material.title}</h3>
+              <div className="flex items-center gap-2 text-indigo-400/80 font-black text-[10px] uppercase tracking-widest mb-6">
+                 <FiCpu /> {material.subject.name}
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-8">
+                <Tag label={`Term ${material.semester}`} color="bg-slate-800 text-slate-400" />
+                <Tag label={material.branch.name} color="bg-indigo-500/10 text-indigo-400" />
+                <Tag label={material.type} color="bg-emerald-500/10 text-emerald-400" />
+              </div>
+
+              <button
+                onClick={() => window.open(`${process.env.REACT_APP_MEDIA_LINK}/${material.file}`)}
+                className="w-full py-4 bg-slate-800 text-slate-100 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-indigo-600 hover:text-white transition-all shadow-lg"
               >
+                <MdLink size={20} /> Access Asset
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl bg-black/60">
+          <div className="bg-slate-950 border border-slate-800 rounded-[3rem] p-10 max-w-2xl w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-10">
+              <div>
+                 <h2 className="text-3xl font-black text-white tracking-tighter">
+                   {editingMaterial ? "Edit Asset" : "New Asset"}
+                 </h2>
+                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Publish to Academic Cloud</p>
+              </div>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="p-3 bg-slate-900 text-slate-500 hover:text-white rounded-2xl transition-all">
                 <AiOutlineClose size={24} />
-              </CustomButton>
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title
-                </label>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Display Title</label>
                 <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  type="text" name="title" value={formData.title} onChange={handleInputChange}
+                  className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-bold"
+                  placeholder="e.g. Advanced Calculus Notes" required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject
-                  </label>
-                  <select
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Subject</option>
-                    {subjects.map((subject) => (
-                      <option key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </option>
-                    ))}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Subject</label>
+                  <select name="subject" value={formData.subject} onChange={handleInputChange} className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" required>
+                    <option value="">Select</option>
+                    {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Branch
-                  </label>
-                  <select
-                    name="branch"
-                    value={formData.branch}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Branch</option>
-                    {branches.map((branch) => (
-                      <option key={branch._id} value={branch._id}>
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Semester
-                  </label>
-                  <select
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type
-                  </label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="notes">Notes</option>
-                    <option value="assignment">Assignment</option>
-                    <option value="syllabus">Syllabus</option>
-                    <option value="other">Other</option>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Branch</label>
+                  <select name="branch" value={formData.branch} onChange={handleInputChange} className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" required>
+                    <option value="">Select</option>
+                    {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Material File
-                </label>
-                <div className="flex items-center space-x-4">
-                  <label className="flex-1 px-4 py-2 border rounded-md cursor-pointer hover:bg-gray-50">
-                    <span className="flex items-center justify-center">
-                      <FiUpload className="mr-2" />
-                      {file ? file.name : "Choose File"}
-                    </span>
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      required={!editingMaterial}
-                    />
-                  </label>
-                  {file && (
-                    <CustomButton
-                      onClick={() => setFile(null)}
-                      variant="danger"
-                      className="!p-2"
-                    >
-                      <AiOutlineClose size={20} />
-                    </CustomButton>
-                  )}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Semester</label>
+                  <select name="semester" value={formData.semester} onChange={handleInputChange} className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" required>
+                    <option value="">Select</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => <option key={sem} value={sem}>{sem}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Category</label>
+                  <select name="type" value={formData.type} onChange={handleInputChange} className="w-full bg-slate-900/50 border border-slate-800 text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" required>
+                    {["notes", "assignment", "syllabus", "other"].map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
+                  </select>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 mt-6">
-                <CustomButton
-                  onClick={() => {
-                    setShowModal(false);
-                    resetForm();
-                  }}
-                  variant="secondary"
-                >
-                  Cancel
-                </CustomButton>
-                <CustomButton type="submit" disabled={dataLoading}>
-                  {dataLoading
-                    ? "Processing..."
-                    : editingMaterial
-                    ? "Update Material"
-                    : "Add Material"}
-                </CustomButton>
+              <div className="relative group pt-4">
+                <input type="file" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" required={!editingMaterial} />
+                <div className="border-2 border-dashed border-slate-800 rounded-[2rem] p-10 flex flex-col items-center justify-center group-hover:border-indigo-500/50 transition-all bg-slate-900/30">
+                  <FiUpload size={40} className="text-slate-600 mb-3 group-hover:text-indigo-400 group-hover:scale-110 transition-all" />
+                  <p className="text-slate-400 font-black text-sm uppercase tracking-widest">{file ? file.name : "Inject Document"}</p>
+                  <p className="text-slate-600 text-[10px] mt-2 font-bold">Max capacity 10MB (PDF/DOC/PPT)</p>
+                </div>
               </div>
+
+              <button
+                type="submit" disabled={dataLoading}
+                className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {dataLoading ? "Deploying..." : editingMaterial ? "Commit Changes" : "Publish to Portal"}
+              </button>
             </form>
           </div>
         </div>
       )}
+
       <DeleteConfirm
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         onConfirm={handleDelete}
-        message="Are you sure you want to delete this material? This action cannot be undone."
+        message="This will permanently revoke the document from the academic node."
       />
     </div>
   );
 };
+
+const Tag = ({ label, color }) => (
+  <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border border-transparent hover:border-current transition-all ${color}`}>
+    {label}
+  </span>
+);
 
 export default Material;

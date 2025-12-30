@@ -11,15 +11,16 @@ import StudentFinder from "./StudentFinder";
 import Profile from "./Profile";
 import Marks from "./AddMarks";
 import Exam from "../Exam";
+import { FiHome, FiCalendar, FiBookOpen, FiBell, FiSearch, FiEdit3, FiFileText } from "react-icons/fi";
 
 const MENU_ITEMS = [
-  { id: "home", label: "Home", component: null },
-  { id: "timetable", label: "Timetable", component: Timetable },
-  { id: "material", label: "Material", component: Material },
-  { id: "notice", label: "Notice", component: Notice },
-  { id: "student info", label: "Student Info", component: StudentFinder },
-  { id: "marks", label: "Marks", component: Marks },
-  { id: "exam", label: "Exam", component: Exam },
+  { id: "home", label: "Home", component: null, icon: <FiHome /> },
+  { id: "timetable", label: "Timetable", component: Timetable, icon: <FiCalendar /> },
+  { id: "material", label: "Material", component: Material, icon: <FiBookOpen /> },
+  { id: "notice", label: "Notice", component: Notice, icon: <FiBell /> },
+  { id: "student info", label: "Student Info", component: StudentFinder, icon: <FiSearch /> },
+  { id: "marks", label: "Marks", component: Marks, icon: <FiEdit3 /> },
+  { id: "exam", label: "Exam", component: Exam, icon: <FiFileText /> },
 ];
 
 const Home = () => {
@@ -42,24 +43,17 @@ const Home = () => {
         toast.error("Failed to load profile");
       }
     };
-
     fetchUserDetails();
   }, [dispatch, userToken]);
 
-  const getMenuItemClass = (menuId) => {
-    const isSelected = selectedMenu.toLowerCase() === menuId.toLowerCase();
-    return `
-      relative px-6 py-3 rounded-lg font-medium text-sm cursor-pointer transition-all duration-300
-      ${
-        isSelected
-          ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md transform scale-[1.03]"
-          : "text-blue-600 bg-blue-50 hover:bg-blue-100"
-      }
-    `;
-  };
-
   const renderContent = () => {
-    if (selectedMenu === "Home" && profileData) return <Profile profileData={profileData} />;
+    if (selectedMenu === "Home" && profileData) {
+      return (
+        <div className="p-6 md:p-10 animate-in fade-in zoom-in-95 duration-500">
+          <Profile profileData={profileData} />
+        </div>
+      );
+    }
 
     const menuItem = MENU_ITEMS.find(
       (item) => item.label.toLowerCase() === selectedMenu.toLowerCase()
@@ -67,46 +61,120 @@ const Home = () => {
 
     if (menuItem && menuItem.component) {
       const Component = menuItem.component;
-      return <Component />;
+      return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <Component />
+        </div>
+      );
     }
-
     return null;
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col selection:bg-indigo-500/30">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-6">
-        {/* Menu Bar */}
-        <div className="bg-white/70 backdrop-blur-md shadow-sm rounded-2xl border border-gray-100 p-4 mb-10">
-          <ul className="flex flex-wrap justify-center md:justify-evenly gap-3 md:gap-6">
-            {MENU_ITEMS.map((item) => (
-              <li
-                key={item.id}
-                className={getMenuItemClass(item.id)}
-                onClick={() => setSelectedMenu(item.label)}
-              >
-                {item.label}
-                {selectedMenu.toLowerCase() === item.id.toLowerCase() && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-b-md"></span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
 
-        {/* Content Section */}
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 min-h-[60vh]">
-          {renderContent() || (
-            <div className="flex items-center justify-center h-[50vh] text-gray-500 font-medium">
-              Select a section from above to view details
+      <div className="flex flex-1 flex-col lg:flex-row max-w-[1700px] w-full mx-auto px-6 gap-8">
+        
+        {/* SIDEBAR */}
+        <aside className="w-full lg:w-72 mt-8 lg:mt-12">
+          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] p-6 sticky top-28 shadow-2xl shadow-black/20">
+            <div className="px-4 mb-8">
+               <h2 className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Command Center</h2>
             </div>
-          )}
-        </div>
+
+            <nav className="space-y-2">
+              {MENU_ITEMS.map((item) => {
+                const isActive = selectedMenu.toLowerCase() === item.label.toLowerCase();
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedMenu(item.label)}
+                    className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all duration-300 group ${
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 translate-x-1"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-indigo-400"
+                    }`}
+                  >
+                    <span className={`text-lg ${isActive ? "text-white" : "text-slate-500 group-hover:text-indigo-400"}`}>
+                        {item.icon}
+                    </span>
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Quick Status Info */}
+            <div className="mt-10 pt-10 border-t border-slate-800/50 px-4">
+               <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">System Operational</span>
+               </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN CONTENT AREA */}
+        <main className="flex-1 mt-8 lg:mt-12 mb-12">
+          <div className="bg-slate-900/40 backdrop-blur-xl rounded-[3rem] border border-slate-800 shadow-2xl min-h-[80vh] overflow-hidden relative">
+            
+            {/* Context Header */}
+            <div className="px-12 pt-10 pb-6 flex items-center justify-between bg-gradient-to-b from-slate-900/50 to-transparent">
+               <div>
+                 <div className="flex items-center gap-3 mb-1">
+                   <div className="h-1 w-6 bg-indigo-500 rounded-full"></div>
+                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Section</span>
+                 </div>
+                 <h1 className="text-4xl font-black text-white tracking-tighter">{selectedMenu}</h1>
+               </div>
+               
+               {profileData && (
+                 <div className="hidden sm:flex items-center gap-4 bg-slate-800/40 px-5 py-2.5 rounded-2xl border border-slate-700/50">
+                    <div className="text-right">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Access Level</p>
+                        <p className="text-xs font-bold text-slate-200">Faculty Member</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 p-[2px]">
+                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-black text-indigo-400 text-xs">
+                            {profileData.name?.charAt(0)}
+                        </div>
+                    </div>
+                 </div>
+               )}
+            </div>
+
+            {/* Content Slot */}
+            <div className="relative z-10 px-4 pb-4">
+              {renderContent() || (
+                <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+                  <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                  <span className="text-slate-500 font-black text-xs uppercase tracking-[0.4em]">Initializing Module</span>
+                </div>
+              )}
+            </div>
+
+            {/* Subtle Background Glow */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+          </div>
+        </main>
       </div>
 
-      <Toaster position="bottom-center" />
-    </>
+      <Toaster 
+        toastOptions={{
+            style: {
+                background: '#1e293b',
+                color: '#f8fafc',
+                border: '1px solid #334155',
+                borderRadius: '1rem',
+                fontSize: '14px',
+                fontWeight: '600'
+            }
+        }}
+        position="bottom-center" 
+      />
+    </div>
   );
 };
 
